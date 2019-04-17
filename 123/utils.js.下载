@@ -1,0 +1,176 @@
+/**
+ * Created by whitney on 2015/9/25.
+ */
+function myencode(source){
+    var nstr = [];
+    var key=[23,24,39,38,22,11,13,63];
+    var s;
+    var str = source.slice(0).split("");
+    while ( str.length ) {
+       s = str.shift();
+       nstr.push( String( s.charCodeAt() ).split("").reverse().join("") );
+    }
+    nstr = nstr.reverse().join('X');
+
+    return nstr;
+}
+
+function getUrlParam(name) {
+
+    var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)"); //构造一个含有目标参数的正则表达式对象
+
+    var r = window.location.search.substr(1).match(reg);  //匹配目标参数
+
+    // if (r != null) return unescape(r[2]);
+    if (r != null) return decodeURIComponent(r[2]);
+    return ""; //返回参数值
+
+}
+
+ /**
+ * 给当前url添加参数
+ * @param name 参数
+ * @param value 值
+ */
+function addUrlParam(name, value, url) {
+    var currentUrl = url || window.location.href.split('#')[0];
+    //是否有问号参数
+    if (/\?/g.test(currentUrl)) {
+        var patt = new RegExp(name + "=[^&]*");
+        if (patt.test(currentUrl)) {
+            currentUrl = currentUrl.replace(patt, name + "=" + value);
+        } else {
+            currentUrl += "&" + name + "=" + value;
+        }
+    } else {
+        currentUrl += "?" + name + "=" + value;
+    }
+    //判断参数值是否为空，为空则去掉当前参数
+    // console.log(name, value);
+    if (value === '') {
+        var patt2 = new RegExp(name + "=[^&]*&");
+        currentUrl = currentUrl.replace(patt2, '');
+        //处理参数在最后一个时候没法去掉的bug
+        var patt3 = new RegExp("&"+ name +"=");
+        currentUrl = currentUrl.replace(patt3, '');
+    }
+
+     return currentUrl;
+}
+
+
+/**
+ * 获取当前url所有参数
+ * @returns {{}}
+ */
+function getUrlParams() {
+    var urlParams = {};
+    var match,
+            pl = /\+/g,  // Regex for replacing addition symbol with a space
+            search = /([^&=]+)=?([^&]*)/g,
+            decode = function (s) {
+                return decodeURIComponent(s.replace(pl, " "));
+            },
+            query = window.location.search.substring(1);
+    while (match = search.exec(query))
+        urlParams[decode(match[1])] = decode(match[2]);
+    return urlParams
+}
+
+/**
+ * 将json数据转为字符串
+ * @param param
+ * @param key
+ * @returns {string}
+ */
+function parseParam(param, key) {
+    var paramStr = "";
+    if ((param instanceof String && param !='') || param instanceof Number || param instanceof Boolean) {
+        paramStr += "&" + key + "=" + encodeURIComponent(param);
+    } else {
+        $.each(param, function (i) {
+            var k = key == null ? i : key + (param instanceof Array ? "[" + i + "]" : "." + i);
+            if(this !='') paramStr += '&' + parseParam(this, k);
+        });
+    }
+    return paramStr.substr(1);
+};
+
+
+//设置cookies
+function setCookie(name,value)
+{
+    var Days = 30;
+    var exp = new Date();
+    exp.setTime(exp.getTime() + 30*60*1000);
+    document.cookie = name + "="+ escape (value) + ";expires=" + exp.toGMTString();
+}
+
+//读取cookies
+function getCookie(name)
+{
+    var arr,reg=new RegExp("(^| )"+name+"=([^;]*)(;|$)");
+
+    if(arr=document.cookie.match(reg))
+
+        return unescape(arr[2]);
+    else
+        return null;
+}
+
+//删除cookies
+function delCookie(name)
+{
+    var exp = new Date();
+    exp.setTime(exp.getTime() - 1);
+    var cval=getCookie(name);
+    if(cval!=null)
+        document.cookie= name + "="+cval+";expires="+exp.toGMTString();
+}
+
+/*兼容placeholder*/
+function placeholder(){
+    if( !('placeholder' in document.createElement('input')) ){
+
+        $('input[placeholder],textarea[placeholder]').each(function(){
+            var that = $(this),
+                text= that.attr('placeholder');
+            if(that.val()===""){
+                that.val(text).addClass('placeholder');
+            }
+            that.focus(function(){
+                if(that.val()===text){
+                    that.val("").removeClass('placeholder');
+                }
+            })
+                .blur(function(){
+                    if(that.val()===""){
+                        that.val(text).addClass('placeholder');
+                    }
+                })
+                .closest('form').submit(function(){
+                    if(that.val() === text){
+                        that.val('');
+                    }
+                });
+        });
+    }
+}
+var client = (/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase())) ? 'wap' : 'pc';
+//获取广告位接口封装
+function getRecommend(city,dataJson,fun) {
+    $.post('/operations/recommend',{
+        req_id: getCookie('uid2'),
+        uuid:getCookie('uuid'),
+        city: city,
+        client_type: client,
+        client_os:'',
+        url:window.location.href,
+        uri:window.location.pathname,
+        refer:document.referrer,
+        ad_groups:JSON.stringify(dataJson)
+    },fun,'json')
+}
+
+
+

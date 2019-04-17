@@ -1,0 +1,165 @@
+var coord_arr = [];
+$(".point-word-code").append('<div class="point-components-wrap" ondragstart="return false;">\n' +
+    '    <div class="point-code-wrap">\n' +
+    '    <div class="word-wrap">\n' +
+    '        <span class="point-code-tip">请在下面<span class="c-important">依次</span>点击：</span>\n' +
+    '        <img class="word" src="" alt="">\n' +
+    "    </div>\n" +
+    '    <div class="point-wrap">\n' +
+    '        <div class="point-img-wrap">\n' +
+    // "<span>加载中...</span>" +
+    '            <img class="img" src="" alt="">\n' +
+    '            <span class="error-tip">验证失败，请重试</span>\n' +
+    "        </div>\n" +
+    "    </div>\n" +
+    '    <div class="operation clearfix">\n' +
+    '        <div class="f-l">\n' +
+    '            <span class="close"></span>\n' +
+    '            <span class="refresh"></span>\n' +
+    "        </div>\n" +
+    '        <div class="f-r">\n' +
+    '            <span class="submit-yzm">确认</span>\n' +
+    "        </div>\n" +
+    "    </div>\n" +
+    "</div>\n" +
+    // '    <div class="yzm-code-input">请完成安全验证码</div>\n' +
+    "</div>");
+
+var halfWidth = 12, 
+    halfHeight = 12;
+if ((/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase()))) {
+    halfWidth = 34;
+    halfHeight = 34;
+}
+
+$(".point-wrap").on("click", function(e) {
+    // console.log("父===", e);
+    var len = $(this).children(".point").length;
+    if (len < 9) {
+        var y = e.offsetY - halfHeight,
+            x = e.offsetX - halfWidth,
+            imgWidth = $(this).find(".point-img-wrap .img").width(),
+            imgHeight = $(this).find(".point-img-wrap .img").height();
+        // console.log("imgWidth==", imgWidth, imgHeight);
+        var offsetX = e.offsetX * 480 / imgWidth,
+            offsetY = e.offsetY * 300 / imgHeight,
+            arr_pos = [offsetX, offsetY];
+        coord_arr.push(arr_pos);
+        $(this).append('<div class="point" style="top: ' + y + "px;left:" + x + 'px;">' + (len + 1) + "</div>");
+    }
+});
+$(".point-wrap").on("click", ".point", function(e) {
+    e.stopPropagation();
+    var index = $(this).index(".point");
+    coord_arr.splice(index, coord_arr.length - index);
+    // console.log("子==", coord_arr);
+    $(this).nextAll().remove();
+    $(this).remove();
+});
+var isGetImg = false;
+function getCodeImg(changeIsSend) {
+    if (isGetImg) return;
+    isGetImg = true;
+    $.get("/validav2", function(data) {
+        var img = data.msg.img_data_pic,
+            word = data.msg.img_data_word;
+        $(".point-img-wrap .img").attr("src", img);
+        $(".point-word-code .word").attr("src", word);
+        $(".point-wrap .point").remove();
+        changeIsSend && changeIsSend(false);
+        isGetImg = false;
+    }, "json");
+}
+getCodeImg();
+// $(".submit").click(function() {
+//     $.post("/verifypic", {
+//         parm: JSON.stringify(coord_arr)
+//     }, function(data) {
+//         if (data.code == 100) {
+//             window.location.reload();
+//         } else {
+//             $(".error-tip").show();
+//             setTimeout(function() {
+//                 $(".error-tip").hide();
+//                 getCodeImg();
+//             }, 1000);
+//         }
+//     }, "json");
+// });
+$(".yzm-code-input").click(function() {
+    $(".point-code-wrap").show();
+});
+$(".point-word-code").on("click", ".close", function() {
+    coord_arr.splice(0, coord_arr.length);
+    $(".point-code-wrap").hide();
+    $(".point-word-layer").hide();
+    getCodeImg();
+});
+$(".point-word-code").on("click", ".refresh", function() {
+    coord_arr.splice(0, coord_arr.length);
+    getCodeImg();
+});
+
+function bindValiCodeSubmit(config) {
+    var
+        url = config.url || "/verifypic",
+        dom = config.dom || $(".point-code-wrap .submit-yzm"),
+        beforeSubmit = config.beforeSubmit,
+        success = config.success,
+        isSend = false,
+        changeIsSend = function(_isSend) {
+            isSend = _isSend;
+        };
+
+    dom.click(function() {
+        if (isSend) {
+            return;
+        }
+        if (beforeSubmit != undefined) {
+            beforeSubmit(function(result) {
+                if (result === undefined) {
+                    result = true;
+                }
+                if (result) {
+                    submitValiCode(url, success, changeIsSend);
+                }
+            });
+        } else {
+            submitValiCode(url, success, changeIsSend);
+        }
+    });
+
+}
+
+function submitValiCode(url, success, changeIsSend) {
+    changeIsSend(true);
+    $.ajax({
+        type: "POST",
+        url: url,
+        data: {
+            parm: JSON.stringify(coord_arr)
+        },
+        dataType: "json",
+        xhrFields: {
+            withCredentials: true
+        },
+        crossDomain: true,
+        success: function(data) {
+            if (data.code == 100) {
+                $(".point-code-wrap").hide();
+                $(".point-word-layer").hide();
+                coord_arr.splice(0, coord_arr.length);
+                $(".point-code-wrap .point-wrap .point").remove();
+                getCodeImg(changeIsSend);
+                success(data);
+            } else {
+                $(".error-tip").show();
+                coord_arr.splice(0, coord_arr.length);
+                setTimeout(function() {
+                    $(".error-tip").hide();
+                    getCodeImg(changeIsSend);
+                }, 1000);
+            }
+        }
+    });
+}

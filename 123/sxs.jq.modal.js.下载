@@ -1,0 +1,340 @@
+/**
+ * 实习生专属模态窗组件
+ * 夏夜大佬设定：同时只存在一个激活模态窗。
+ *
+ * $.sxs_modal("modal_id",callback)
+ * 显示模态窗
+ *
+ * $.sxs_modal.hide()
+ * 隐藏模态窗，彻底隐藏.
+ *
+ * $.sxs_modal.init()
+ * 重置/初始化模态窗配置，用于需要刷新DOM的情况。
+ *
+ * $.sxs_modal.form.test()
+ * $.sxs_modal.form.val()
+ * $.sxs_modal.form.val_query()
+ * 当前显示的表单的验证和获取值。
+ *
+ * 注意：
+ * JS 修改表单内部的select标签之后 需要手动调用 $selector.val("1").change() 来触发页面样式变化
+ *
+ */
+(function($){
+  var $sm,$bg,$modals,$modals_list = {},shown;
+
+  function init() {
+    $sm = $(".sxs--modal");
+    $bg = $sm.children(".sxs--modal--bg");
+    shown = (typeof $sm.attr("data-sxs-modal-shown") == 'string');
+    $modals = $sm.find(".sxs--modal--container");
+    $modals_list = {};
+    $modals.each(function(i,item){
+      var $i = $(item);
+      var a = $i.attr("data-sxs-modal-id");
+      $i.attr("data-sxs-modal-id-num",i);
+      a && ($modals_list[a] = $i);
+      $modals_list[i] = $i;
+    });
+
+    //$sm.find(".sxs--modal--btn>span[data-modal-form-check][data-modal-act-bind-form!='1']").each(function(i,item){
+    //  $(item).attr("data-modal-act-bind-form","1").on("click",function(e){
+    //    if(refresh_form_err($(this).parents(".sxs--modal--container"))){
+    //      e.stopPropagation();
+    //      e.preventDefault();
+    //    }
+    //  });
+    //});
+    $sm.find("span.sxs--modal--close[data-modal-act-bind!='1']").each(function(i,item){
+      $(item).attr("data-modal-act-bind","1").on("click",function(){
+        if($(this).is("[data-modal-form-check]") && !refresh_form_err($(this).parents(".sxs--modal--container").find(".sxs--modal--form"),true)){
+          return console.warn("ERR-201 / 表单验证尚未通过");
+        }
+        hide();
+      });
+    });
+    $sm.find("span.sxs--modal--change[data-modal-act-bind!='1']").each(function(i,item){
+      $(item).attr("data-modal-act-bind","1").on("click",function(){
+        if($(this).is("[data-modal-form-check]") && !refresh_form_err($(this).parents(".sxs--modal--container").find(".sxs--modal--form"),true)){
+          return console.warn("ERR-201 / 表单验证尚未通过");
+        }
+        var change2 = $(this).attr("data-change");
+        if(!change2){
+          change2 = parseInt($(this).parents(".sxs--modal--container").attr("data-sxs-modal-id-num"))+1
+        }
+        console.log(change2);
+        show_one(change2);
+      });
+    });
+    $sm.find(".sxs--modal--form").each(function(i,item){
+      var $form = $(item);
+      $form.find("label[data-modal-act-bind!='1']").each(function(i,item){
+        var $i = $(item).attr("data-modal-act-bind","1");
+        var require,filter = [],act=[];
+        try{
+          switch ($i.attr("class").match(/sxs--modal--\w+/)[0]){
+            case 'sxs--modal--input':
+              $i.find("input").on("input",function(e){
+                $(this).is("[data-check-on='1']") && refresh_form_err($form);
+              });
+              $i.find("input").on("blur",function(e){
+                $(this).attr("data-check-on",'1');
+                refresh_form_err($form);
+              });
+              break;
+            case 'sxs--modal--select':
+              var $is = $i.find("select");
+              var $shadow_active;
+              var $is_shadow = $(
+                '<ul class="sxs--modal--options">'+
+                (function(){
+                  var t = "";
+                  var s = false;
+                  $is.children().each(function(i,item){
+                    t += '<li data-value="'+item.value+'">'+($(item).text()?$(item).text():item.value)+'</li>';
+                    if(!s && item.selected){
+                      s = true;
+                      $i.prepend($shadow_active = $('<span class="sxs--modal--selector" data-value="'+item.value+'">'+($(item).text()?$(item).text():item.value)+'</span>'));
+                    }
+                  });
+                  if(!s){
+                    var item = $is.children().eq(0);
+                    $i.prepend($shadow_active = $('<span class="sxs--modal--selector" data-value="'+item.value+'">'+($(item).text()?$(item).text():item.value)+'</span>'));
+                  }
+                  return t
+                })()+
+                '</ul>'
+              );
+              $i.append($is_shadow);
+              function change_item(val) {
+                $is_shadow.children().removeClass("active");
+                var now_item = $is_shadow.find("[data-value='"+val+"']").addClass("active");
+                $shadow_active.text(now_item.text()).attr("data-value",now_item.attr("data-value"));
+              }
+              change_item($shadow_active.attr("data-value"));
+
+              $is.on("change",function(val){
+                change_item($is.val());
+              });
+              $shadow_active.click(function(){
+                (!$shadow_active.hasClass("active")) && $shadow_active.addClass("active");
+              });
+              $is_shadow.on("mouseleave",function(){
+                $shadow_active.removeClass("active");
+              }).children().click(function(){
+                var v = $(this).attr("data-value");
+                $is.val(v);
+                change_item(v);
+                $shadow_active.removeClass("active");
+              });
+
+              break;
+            case 'sxs--modal--radio':
+
+              break;
+            default:
+              console.warn($i,"ERR-401 / 事件or状态类型不存在");
+              return
+          }
+        }catch(err){
+          console.warn($i,err,"ERR-501 / Action绑定因不可控因素失败");
+        }});
+
+    });
+
+  }
+
+  function set_item_err($item,err){
+    if(!err){
+      return $item.removeAttr("data-sxs-err");
+    }
+    $item.attr("data-sxs-err",err);
+  }
+  function set_form_err($form,err){
+    if(!err){
+      return $form.removeAttr("data-sxs-err");
+    }
+    $form.attr("data-sxs-err",err);
+  }
+
+  function refresh_form_err($form,force){
+    var err = false;
+    $form.find("label[data-modal-act-bind='1']").each(function(i,item){
+
+      var $i = $(item),$ii;
+      var require,filter = [],act=[];
+      try{
+        switch ($i.attr("class").match(/sxs--modal--\w+/)[0]){
+          case 'sxs--modal--input':
+            $ii= $i.find("input");
+            if(force===undefined){
+              if($ii.is("[data-check-on!='1']")){
+                break
+              }
+            }else{
+              $ii.attr('data-check-on','1');
+            }
+            require = $i.attr("data-require");
+            require = typeof require == 'string' ? (require?require:"请填写必填项") : false;
+
+            if(require){
+              act.push([/[^\s]+/,require]);
+            }
+
+            filter = $i.attr("data-filter");
+            filter = typeof filter == 'string' ? filter.match(/\[(.*?)\]/g) : [];
+
+            $.each(filter,function(i,item){
+              var reg = item.replace(/^\[/,"").replace(/\]$/,"").split("||");
+              reg[0] = new RegExp(reg[0]);
+              act.push(reg);
+            });
+
+            var val = $ii.val(),__act,al = act.length,i_err=false;
+
+            al && (function(){
+              for(var c=0;c<act.length;c++){
+                __act = act[c];
+                if(!__act[0].test(val)){
+                  !err && (function(){
+                    err = __act[1];
+                    set_form_err($form,err);
+                  })();
+                  i_err = true;
+                }
+              }
+
+              set_item_err($i,i_err);
+              if(!err){
+                set_form_err($form,false)
+              }
+            })();
+
+
+
+            break;
+          case 'sxs--modal--select':
+
+            break;
+          case 'sxs--modal--radio':
+
+            break;
+          default:
+            console.warn($i,"ERR-401 / 事件or状态类型不存在");
+            return
+        }
+      }catch(err){
+        console.warn($i,err,"ERR-501 / Action绑定因不可控因素失败");
+      }
+    });
+    var err_btn = $form.parent().find(".sxs--modal--btn>span[data-modal-form-check]");
+    if(!err){
+      err_btn.attr("data-modal-form-check","passed")
+    }else{
+      err_btn.attr("data-modal-form-check","")
+    }
+    return !err
+  }
+
+  function ready() {
+    init();
+    reset_max_height();
+    if(shown){
+      shown = false;
+      if($sm.find(".sxs--modal--shown").length < 1){
+        show_one(0)
+      }else{
+        reset_height($sm.attr("data-sxs-modal-shown",1).fadeIn(600).find(".sxs--modal--shown"));
+      }
+    }
+  }
+  function reset_max_height() {
+    $sm.find(".sxs--modal--content").css("max-height",$(window).height()-60+"px");
+    if((typeof $sm.attr("data-sxs-modal-shown") == 'string')){
+      reset_height($modals.filter(".sxs--modal--shown"))
+    }
+  }
+  window.onresize = reset_max_height;
+  function reset_height(c) {
+    $bg.css('height',(function () {
+        var h = c.height();
+        c.css({
+          "height":h+"px",
+          "margin-top":"-"+(h/2).toString()+"px"
+        });
+        return h
+      })()+'px')
+  }
+  function hide() {
+    shown = false;
+    $modals.removeClass("sxs--modal--hiding");
+    $modals.filter(".sxs--modal--shown").addClass("sxs--modal--hiding");
+    $modals.removeClass("sxs--modal--shown");
+    $sm.fadeOut(600);
+  }
+  function show_one(id,callback) {
+    if(!shown){
+      shown = true;
+      $sm.attr("data-sxs-modal-shown",1).fadeIn(600)
+    }
+    $modals.removeClass("sxs--modal--hiding");
+    $modals.filter(".sxs--modal--shown").addClass("sxs--modal--hiding");
+    $modals.removeClass("sxs--modal--shown");
+    var c = $modals_list[id];
+    if(!c){
+      throw new Error("ERR-202 / 该模态窗ID未被定义");
+    }
+    reset_height(c);
+    c.addClass("sxs--modal--shown");
+    typeof callback == 'function' && callback(c);
+  }
+
+  // 定义回 jq 入口
+  var sxs_modal = function(arg,callback){
+    if(typeof arg == 'string' || typeof arg == 'number'){
+      show_one(arg,callback)
+    }
+  };
+  sxs_modal.init = init;
+  sxs_modal.hide = hide;
+  sxs_modal.form = {
+    test : function(){
+      var f = $(".sxs--modal--shown form.sxs--modal--form");
+      if(f.length){
+        return refresh_form_err(f,true);
+      }
+      return false
+    },
+    val : function () {
+      var f = $(".sxs--modal--shown form.sxs--modal--form");
+      if(f.length){
+        var arr = f.serializeArray();
+        var obj = {};
+        $.each(arr,function(i,item){
+          obj[item.name] = item.value;
+        });
+        return obj;
+      }
+      return {}
+    },
+    val_query : function () {
+      var f = $(".sxs--modal--shown form.sxs--modal--form");
+      if(f.length){
+        return f.serialize();
+      }
+      return ""
+    }
+  };
+  $.sxs_modal = sxs_modal;
+  ready();
+})($);
+
+
+
+
+//var t=0;
+//setInterval(function(){t=(t==2?0:t+1);$.sxs_modal(t)},3000);
+
+
+
+
