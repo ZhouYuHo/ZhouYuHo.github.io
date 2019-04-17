@@ -1,0 +1,90 @@
+/**
+ * Created by dcg on 15/10/8.
+ */
+;(function($){
+    $.fn.creatBox = function(options,isThis,not_remove){
+        //var option = $.extend({},options);
+        if(options == 'close'){
+            $("body").css("overflow","auto");
+            var $shade = $("#shade");
+            $shade.fadeOut(400,function(){
+                if(!not_remove){
+                    $shade.remove();
+                }
+            });
+            if(isThis){
+                 $(this).fadeOut(600);
+            }else{
+                $(this).parent().fadeOut(600);
+            }
+            return;
+        }else{
+            $("body").css("overflow","hidden");
+        }
+        return $(this).each(function(){
+            var $has_shade = $("#shade").length ?　$("#shade").css("opacity","0") : false;
+            var $shade = $has_shade ? $has_shade : $("<div id='shade'></div>"),
+                $this = $(this),
+                width = $this.width(),
+                wHeight = $(window).height(),
+                status = $this.height()+wHeight*0.15 < wHeight ? true : false,
+                height = status ? $this.height() : wHeight*0.9, //判断弹窗的高度和 视口的高度差
+                top = status ? '15%' : '2%';
+            console.log($this.height(),wHeight,$this.height()+wHeight*0.15 < wHeight)
+
+            $this.css({
+                position:'fixed',
+                //top: top,
+                top:'50%',
+                left:'50%',
+                transform:'translate(-50%,-50%)',
+                zIndex:'1002'
+                //margin:'0 0 0 ' + -width/2 + 'px'
+            });
+            if(!status){
+                $this.css({
+                    height: height,
+                    overflowX: 'hidden',
+                    overflowY: 'auto'
+                });
+            }
+            $shade.css({
+                width:'100%',
+                height:'100%',
+                background:'#000',
+                opacity:'0',
+                position:'fixed',
+                top:'0',
+                left:'0',
+                zIndex:'1001',
+                // cursor:'pointer',
+                display: "block"
+            });
+            !$has_shade && $("body").append($shade);
+            !$has_shade && $shade.animate({opacity:.5},400).on("click",function(){
+                $this.fadeOut(400);
+                $shade.fadeOut(600,function(){
+                    $shade.remove();
+                });
+            });
+            $has_shade && $has_shade.animate({opacity:.5},400);
+            $this.fadeIn(400,function(){
+                //var $t = $(this);
+                //$t.css("top","50%");
+                //console.log($t.height());
+                //$t.css("margin-top",("-"+($t.height()/2).toString())+"px");
+
+            });
+        })
+    }
+})(jQuery);
+
+//弹窗取消
+$('.popup_cancel').on('click',function(){
+    $('.popup_close').click();
+});
+
+//弹窗关闭
+$('.popup_close').on('click',function(){
+    $(this).creatBox('close');
+});

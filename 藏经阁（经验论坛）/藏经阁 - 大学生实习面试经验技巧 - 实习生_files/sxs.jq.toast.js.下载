@@ -1,0 +1,221 @@
+(function($){
+  var tpl = {
+    basic : "" +
+            "<div data-toast-rdm='$rdm$' style='-webkit-user-select: none;-moz-user-select: none;-ms-user-select: none;user-select: none;position: fixed;top:50%;left:0;right:0;margin:-16px auto auto;color:#fff;-webkit-border-radius: 10px;-moz-border-radius: 10px;border-radius: 10px;background:rgba(0,0,0,.6);text-align:center;font-size:20px;line-height: 28px;display:none;" +
+            "z-index: 1003;width: 80%;max-width:360px;padding: $padding$px;$ext$'>" +
+            "$content$" +
+            "</div>",
+    loading : "" +
+    "<div data-toast-loading='loading' style='-webkit-user-select: none;-moz-user-select: none;-ms-user-select: none;user-select: none;'>" +
+    "<div><div></div><p>$content$</p></div>" +
+    "</div>",
+    img : "" +
+    "<div style='-webkit-user-select: none;-moz-user-select: none;-ms-user-select: none;user-select: none;display:none;width: 100%;height: 100%;position:fixed;top: 0;left: 0;z-index: 201;background: rgba(0,0,0,.8)'>" +
+    "<div style='width: 95%;height: 95%;position:absolute;top:0;left:0;right:0;bottom:0;margin:auto;background: url($img_url$) center/contain no-repeat;'></div>" +
+    "</div>"
+  };
+  var config = {
+    type : "basic",
+    //width: 400,
+    //height: 120,
+    padding: 18,
+    ext : "",
+    content : "",
+    time : 3000
+  };
+  var $body = $("body");
+  $.toast = function(option){
+    toast(option,$body);
+  };
+  $.img_preview = function(img_url){
+    image_preview(img_url)
+  };
+  $.loading = function(text){
+    if(!text){text = ""}
+    var l = $("[data-toast-loading='loading']");
+    if(!l.length){
+      var $l = $(tpl.loading.replace("$content$",text));
+      $body.append($l);
+      $l.fadeIn(300)
+    }
+  };
+  $.clearLoading = function(){
+    $("[data-toast-loading='loading']").attr('data-toast-loading','hide').fadeOut(300,function(){
+      $(this).remove();
+    })
+  };
+  $.fn.toast = function(option){
+    toast(option,$(this));
+  };
+  (function(){
+  //  add style
+    var style = "<style>" +
+      "[data-toast-loading]>div>p{"+
+      "    margin: 0;"+
+      "    line-height: 50px;"+
+      "    font-size: 18px;"+
+      "}"+
+      "[data-toast-loading]>div>div{"+
+      "    background:url(//sxsimg.xiaoyuanzhao.com/61/91/61502F62D2B86D8B6882B83377BB5691.png) no-repeat center;"+
+      "    width: 25%;"+
+      "    height: 50%;"+
+      "    margin: 50px auto 0;"+
+      "    background-size: contain;"+
+      "    -webkit-animation: qb-jq-toast-loading 1s linear infinite;"+
+      "    -o-animation: qb-jq-toast-loading 1s linear infinite;"+
+      "    animation: qb-jq-toast-loading 1s linear infinite;"+
+      "}"+
+      "[data-toast-loading]{"+
+      "    position: fixed;"+
+      "    z-index: 110;"+
+      "    width: 100%;"+
+      "    height: 100%;"+
+      "    top:0;"+
+      "    left:0;"+
+      "    display: none;"+
+      "    overflow: hidden;"+
+      "}"+
+      "[data-toast-loading]>div{"+
+      "    z-index: 111;width:200px;height:200px;"+
+      "    position: absolute;top:0;left:0;right:0;bottom:0;margin:auto;"+
+      "    color:#fff;"+
+      "    -webkit-border-radius: 10px;-moz-border-radius: 10px;border-radius: 10px;"+
+      "    background:rgba(0,0,0,.6);"+
+      "    text-align:center;"+
+      "}"+
+      "@keyframes qb-jq-toast-loading {"+
+      "    0%{"+
+      "        -webkit-transform: rotate(0deg);"+
+      "        -moz-transform: rotate(0deg);"+
+      "        -ms-transform: rotate(0deg);"+
+      "        -o-transform: rotate(0deg);"+
+      "        transform: rotate(0deg);"+
+      "    }"+
+      "    100%{"+
+      "        -webkit-transform: rotate(360deg);"+
+      "        -moz-transform: rotate(360deg);"+
+      "        -ms-transform: rotate(360deg);"+
+      "        -o-transform: rotate(360deg);"+
+      "        transform: rotate(360deg);}"+
+      "}"+
+      "@-ms-keyframes qb-jq-toast-loading {"+
+      "    0%{"+
+      "        -webkit-transform: rotate(0deg);"+
+      "        -moz-transform: rotate(0deg);"+
+      "        -ms-transform: rotate(0deg);"+
+      "        -o-transform: rotate(0deg);"+
+      "        transform: rotate(0deg);"+
+      "    }"+
+      "    100%{"+
+      "        -webkit-transform: rotate(360deg);"+
+      "        -moz-transform: rotate(360deg);"+
+      "        -ms-transform: rotate(360deg);"+
+      "        -o-transform: rotate(360deg);"+
+      "        transform: rotate(360deg);}"+
+      "}"+
+      "@-moz-keyframes qb-jq-toast-loading {"+
+      "    0%{"+
+      "        -webkit-transform: rotate(0deg);"+
+      "        -moz-transform: rotate(0deg);"+
+      "        -ms-transform: rotate(0deg);"+
+      "        -o-transform: rotate(0deg);"+
+      "        transform: rotate(0deg);"+
+      "    }"+
+      "    100%{"+
+      "        -webkit-transform: rotate(360deg);"+
+      "        -moz-transform: rotate(360deg);"+
+      "        -ms-transform: rotate(360deg);"+
+      "        -o-transform: rotate(360deg);"+
+      "        transform: rotate(360deg);}"+
+      "}"+
+      "@-o-keyframes qb-jq-toast-loading {"+
+      "    0%{"+
+      "        -webkit-transform: rotate(0deg);"+
+      "        -moz-transform: rotate(0deg);"+
+      "        -ms-transform: rotate(0deg);"+
+      "        -o-transform: rotate(0deg);"+
+      "        transform: rotate(0deg);"+
+      "    }"+
+      "    100%{"+
+      "        -webkit-transform: rotate(360deg);"+
+      "        -moz-transform: rotate(360deg);"+
+      "        -ms-transform: rotate(360deg);"+
+      "        -o-transform: rotate(360deg);"+
+      "        transform: rotate(360deg);}"+
+      "}"+
+      "@-khtml-keyframes qb-jq-toast-loading {"+
+      "    0%{"+
+      "        -webkit-transform: rotate(0deg);"+
+      "        -moz-transform: rotate(0deg);"+
+      "        -ms-transform: rotate(0deg);"+
+      "        -o-transform: rotate(0deg);"+
+      "        transform: rotate(0deg);"+
+      "    }"+
+      "    100%{"+
+      "        -webkit-transform: rotate(360deg);"+
+      "        -moz-transform: rotate(360deg);"+
+      "        -ms-transform: rotate(360deg);"+
+      "        -o-transform: rotate(360deg);"+
+      "        transform: rotate(360deg);}"+
+      "}"+
+      "@-webkit-keyframes qb-jq-toast-loading {"+
+      "    0%{"+
+      "        -webkit-transform: rotate(0deg);"+
+      "        -moz-transform: rotate(0deg);"+
+      "        -ms-transform: rotate(0deg);"+
+      "        -o-transform: rotate(0deg);"+
+      "        transform: rotate(0deg);"+
+      "    }"+
+      "    100%{"+
+      "        -webkit-transform: rotate(360deg);"+
+      "        -moz-transform: rotate(360deg);"+
+      "        -ms-transform: rotate(360deg);"+
+      "        -o-transform: rotate(360deg);"+
+      "        transform: rotate(360deg);}"+
+      "}"+
+      "</style>";
+    $("head").append($(style));
+  })();
+  function toast(option,$d){
+      option  = option || "" ;
+      if(typeof option == 'string' || typeof option == 'number'){
+        option = (function(text){
+          var o = config;
+          o.content = text;
+          return o;
+        })(option);
+      }
+      if(typeof option == 'object'){
+        option = $.extend(config,option);
+      }
+      var _tpl = tpl[option.type],rdm = Math.random().toString();
+      _tpl = _tpl.replace("$width$",option.width);
+      _tpl = _tpl.replace("$height$",option.height);
+      _tpl = _tpl.replace("$padding$",option.padding);
+      _tpl = _tpl.replace("$ext$",option.ext);
+      _tpl = _tpl.replace("$content$",option.content);
+      _tpl = _tpl.replace("$rdm$",rdm);
+      var $tpl = $(_tpl);
+      $d.append($tpl);
+      $tpl.fadeIn(300,function(){
+        setTimeout(function(){
+          $('[data-toast-rdm="'+rdm+'"]').fadeOut(300,function(){
+            $(this).remove();
+          })
+        },option.time)
+      }).click(function(){
+        $('[data-toast-rdm="'+rdm+'"]').fadeOut(300,function(){
+          $(this).remove();
+        })
+      });
+  }
+  function image_preview(img_url){
+    if(!img_url){return}
+    var $l = $(tpl.img.replace("$img_url$",img_url));
+    $l.click(function(){
+      $l.fadeOut(300)
+    });
+    $body.append($l);
+    $l.fadeIn(300)
+  }
+})($);

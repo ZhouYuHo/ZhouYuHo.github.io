@@ -1,0 +1,691 @@
+var $navLogin = $(".nav_login"),
+    // $loginBox = $(".login_box_X"),
+    $loginBox = $(".register-wrap"),
+    $shadow = $("#shadow"),
+    // $uname = $("#base_log_name"),
+    // $upass = $("#base_log_password"),
+    // loginFlag,
+    // remember_login;
+
+    $loginType = $(".login-type"),
+    $form1 = $(".type1-form"),
+    $form2 = $(".type2-form"),
+    // $imgCode = $('.img-code'),
+    $loginBtn = $(".login-btn"),
+    $getPhoneCode = $(".register-layer-wrap .get-phone-code"),
+    $getPhoneCodeBtn = $getPhoneCode.find(".btn"),
+    account = "",
+    password = "",
+    imgCode = "",
+    phoneCode = "",
+    rdid = "",
+    phoneReg = /^1[0-9]{10}$/,
+    isRegister = true,
+    phoneError = false;
+
+if ($navLogin) {
+    $navLogin.on("click", function() {
+        $shadow.fadeIn(300);
+        $loginBox.fadeIn(300);
+        // 老代码
+        // if (!loginFlag) {
+        // $("#base_login_btn").on("click", function () {
+        //     loginFlag = true;
+        //     if (!$.trim($uname.val())) {
+        //         $.toast("请输入账户名！");
+        //         return;
+        //     }
+        //     if (!$.trim($upass.val())) {
+        //         $.toast("请输入密码！");
+        //         return;
+        //     }
+        //     remember_login = $('#remember_btn:checked').val() ? 1 : 0;
+        //     $.post(
+        //         '/user/login',
+        //         {username: $uname.val(), password: myencode($upass.val()), remember_login: remember_login},
+        //         function (d) {
+        //             if (d.code == 100) {
+        //                 // 同步登录其他产品
+        //                 SSOLoginSync();
+        //                 if (d.msg == 'company') {
+        //                     window.location.href = "http://hr.shixiseng.com"
+        //                 }
+        //                 else {
+        //                     window.location.reload()
+        //                 }
+        //             }
+        //             else {
+        //                 layer.alert(d.msg, {icon: 5});
+        //             }
+        //             loginFlag = false;
+        //         },
+        //         'json'
+        //     )
+        // })
+        // }
+    });
+
+    // 登录方式切换
+    $loginType.on("click", function() {
+        var $this = $(this);
+        if ($this.hasClass("active")) return;
+        $this.addClass("active").siblings(".login-type").removeClass("active");
+        if ($this.hasClass("type1")) {
+            $this.siblings(".line").removeClass("active");
+            $form1.show().find("input").not("#remember_btn").val("");
+            $form2.hide();
+            resetTime();
+            isRegister = true;
+            $(".register-link2").css("display", "none");
+            // $imgCode.trigger('click');
+        } else {
+            $this.siblings(".line").addClass("active");
+            $form1.hide();
+            $form2.show().find("input").val("");
+        }
+        $(".register-layer-wrap .point-code-wrap").hide();
+        getCodeImg();
+    });
+
+    // 获取图形验证码
+    // $imgCode.on('click', function () {
+    //     $(this).find('img').attr("src", '/validatecode?random=' + Math.random());
+    //     $(this).siblings('input.img-code-input').val('');
+    // })
+
+    // 点击登录
+    $loginBtn.on("click", function() {
+        var loginType = $(".login-type.active").hasClass("type1"),
+            rememberLogin;
+        if (loginType) {
+            // 密码登录
+            account = $.trim($form1.find("input.account").val());
+            password = myencode($.trim($form1.find("input.password").val()));
+            rememberLogin = $("#remember_btn:checked").val() ? $("#remember_btn:checked").val() : 0;
+            if (account && password) {
+                $.post(
+                    "/user/login",
+                    {
+                        username: account, password: password, remember_login: rememberLogin
+                    },
+                    function(d) {
+                        if (d.code === 100) {
+                            // 同步登录其他产品
+                            SSOLoginSync();
+                            if (d.msg === "company") {
+                                window.location.href = "http://hr.shixiseng.com";
+                            } else {
+                                window.location.reload();
+                            }
+                        } else {
+                            layer.alert(d.msg, {
+                                icon: 5
+                            });
+                        }
+                    },
+                    "json"
+                );
+            } else {
+                layer.alert("请先完善登录信息", {
+                    icon: 5 
+                });
+            }
+        } else {
+            // 验证码登录
+            account = $.trim($form2.find("input.phoneNumber").val());
+            phoneCode = $.trim($form2.find("input.phone-code-input").val());
+            if (!account) {
+                layer.alert("请输入手机号", {
+                    icon: 5 
+                });
+                return;
+            }
+            if (phoneError) {
+                layer.msg("手机号格式不正确！");
+                return;
+            }
+            if (!isRegister) {
+                $(".register-link2").css("display", "block");
+                return;
+            }
+            if (!phoneCode) {
+                layer.alert("请输入短信验证码", {
+                    icon: 5
+                });
+                return;
+            }
+
+            $.post("/api/v2/login/bycode", {
+                tel: account, stype: "pc", rdcode: phoneCode, rdid: rdid
+            }, function(d) {
+                if (d.code === 100) {
+                    SSOLoginSync();
+                    if (d.msg === "company") {
+                        window.location.href = "https://hr.shixiseng.com";
+                    } else {
+                        window.location.reload();
+                    }
+                } else {
+                    layer.msg(d.msg);
+                }
+            }, "json");
+        }
+    });
+
+    // 获取短信验证码
+    $getPhoneCodeBtn.on("click", function() {
+        account = $.trim($form2.find("input.phoneNumber").val());
+        // imgCode = $.trim($form2.find('input.img-code-input').val());
+        if (!account) {
+            layer.alert("请输入手机号", {
+                icon: 5
+            });
+            return;
+        }
+        if (phoneError) {
+            layer.msg("手机号格式不正确！");
+            return;
+        }
+        if (!isRegister) {
+            $(".register-link2").css("display", "block");
+            return;
+        }
+        // if (!imgCode) {
+        //     layer.alert('请输入图形验证码', {icon: 5});
+        //     return;
+        // }
+        // $.get('/telrandcode', {'tel': account, 'token': imgCode}, function (data) {
+        //     if (data.code === 100) {
+        //         rdid = data.msg;
+        //         countDown();
+        //     } else {
+        //         layer.msg(data.msg);
+        //         $imgCode.trigger('click');
+        //     }
+        // }, 'json');
+        $(".register-layer-wrap .point-code-wrap").show();
+    });
+
+    // $(".register-layer-wrap .point-code-wrap .submit-yzm").click(function() {
+    //     if(isRegister) {
+    //         account = $.trim($form2.find('input.phoneNumber').val());
+    //         $.post("/verifypic", {
+    //             parm: JSON.stringify(coord_arr)
+    //         }, function (data) {
+    //             if (data.code === 100) {
+    //                 // 获取验证码
+    //                 $(".point-code-wrap").hide();
+    //                 getCodeImg();
+    //                 coord_arr.splice(0,coord_arr.length);
+    //                 $(".point-code-wrap .point-wrap .point").remove();
+    //                 $.get('/telrandcode', {'tel': account}, function (data) {
+    //                     if (data.code === 100) {
+    //                         rdid = data.msg;
+    //                         countDown();
+    //                     } else {
+    //                         layer.msg(data.msg);
+    //                     }
+    //                 }, 'json');
+    //             } else {
+    //                 $(".error-tip").show();
+    //                 coord_arr.splice(0,coord_arr.length);
+    //                 setTimeout(function () {
+    //                     $(".error-tip").hide();
+    //                     getCodeImg();
+    //                 }, 1000);
+    //             }
+    //         }, "json");
+    //     } else {
+    //         layer.msg('该手机号未注册！')
+    //     }
+    // });
+    bindValiCodeSubmit({
+        url: "/verifypic",
+        beforeSubmit: function(cb) {
+            if (!isRegister) {
+                layer.msg("该手机号未注册！");
+            }
+            cb(isRegister);
+        },
+        dom: $(".register-layer-wrap .point-code-wrap .submit-yzm"),
+        success: function() {
+            account = $.trim($form2.find("input.phoneNumber").val());
+            $.get("/telrandcode", {
+                tel: account
+            }, function(data) {
+                if (data.code === 100) {
+                    rdid = data.msg;
+                    countDown();
+                } else {
+                    layer.msg(data.msg);
+                }
+            }, "json");
+        }
+    });
+
+    // 判断手机号是否注册
+    $form2.find("input.phoneNumber").on("blur", function() {
+        account = $.trim($form2.find("input.phoneNumber").val());
+        if (!account) return;
+        if (phoneReg.test(account)) {
+            phoneError = false;
+            $.post("/user/telverify", {
+                username: account
+            }, function(d) {
+                if (d.code === 100) {
+                    // 未注册
+                    $(".register-link2").css("display", "block").attr("href", "/user/register?account=" + account);
+                    isRegister = false;
+                } else if (d.code = 505) {
+                    // 已注册 可获取验证码
+                    isRegister = true;
+                } else {
+                    layer.msg(d.msg);
+                }
+            }, "json");
+        } else {
+            phoneError = true;
+            layer.msg("手机号格式不正确！");
+        }
+    });
+    $form2.find("input.phoneNumber").on("focus", function() {
+        isRegister = true;
+        $(".register-link2").css("display", "none");
+    });
+    $form2.find("input.img-code-input, input.phone-code-input").on("focus", function() {
+        if (!isRegister) {
+            $(".register-link2").css("display", "block");
+        }
+    });
+
+    // 输入手机号  获取验证码倒计时重置
+    $form2.find("input.phoneNumber").on("input", function() {
+        var account1 = $.trim($form2.find("input.phoneNumber").val());
+        if (!account1 || account1 === account) return;
+        if (phoneReg.test(account1) && $getPhoneCodeBtn.is(":hidden")) {
+            resetTime();
+            // $imgCode.trigger('click');
+        }
+    });
+
+
+    // 获取验证码倒计时
+    var timer = null;
+    function countDown() {
+        var $time = $getPhoneCodeBtn.hide().siblings(".count-down").show().find("span"), 
+            time = 60;
+        $time.text(time);
+        timer = setInterval(function() {
+            time--;
+            if (time < 0) {
+                resetTime();
+                return;
+            }
+            $time.text(time);
+        }, 1000);
+    }
+
+    function resetTime() {
+        timer && clearInterval(timer);
+        $getPhoneCodeBtn.show().siblings(".count-down").hide();
+    }
+
+
+    $("#base_log_name,#base_log_password").on("keydown", function(e) {
+        if (e.keyCode == 13) {
+            $("#base_login_btn").click();
+        }
+    });
+
+    // 弹窗显示隐藏切换
+    $shadow.on("click", function() {
+        $(this).fadeOut(300).find(">div").fadeOut(300);
+    });
+    $shadow.on("click", ">div", function(e) {
+        e.stopPropagation();
+    });
+}
+
+
+var $logout = $("#logout-btn");
+if ($logout) {
+    $logout.on("click", function() {
+        $.post("/user/logout", function(d) {
+            if (d.code == 100) {
+            }
+            location.href = "/";
+        }, "json");
+    });
+}
+
+$.get("/user/checkunreadinfo", function(d) {
+    if (d.code == 100) {
+        if (d.msg.ischeck) {
+            $(".mine").addClass("red_point");
+            $(".redstar").addClass("tipRed");
+        }
+        if (d.msg.onlysso) {
+            $(".onlysso").addClass("tipRed");
+        }
+    }
+}, "json");
+
+var $iBackTop = $("#back_top"),
+    $iFeedback = $iBackTop.next(),
+    $iFedCon = $iFeedback.next(),
+    // $iPresent = $iFedCon.find("#fb_presend"),
+    // $iCloFb = $iFeedback.next().find("#fb-close");
+    // $iLogFlg = $(".log_flg"),
+    $body = $("body");
+// $iJobT1 = $(".job_ti_1"),
+// $iJobT2 = $(".job_ti_2");
+$(window).on("scroll", function() {
+    var $this = $(this), 
+        scrollT = $this.scrollTop();
+    scrollT > 60 ? $iBackTop.show() : $iBackTop.hide();
+    // if(scrollT < 400){
+    //     $iJobT1.removeClass("now_look");
+    // }else  if(scrollT < 800){
+    //     $iJobT1.addClass("now_look");
+    //     $iJobT2.removeClass("now_look");
+    // }else{
+    //     $iJobT2.addClass("now_look");
+    //     $iJobT1.removeClass("now_look");
+    // }
+});
+$iBackTop.on("click", function() {
+    $("body,html").animate({
+        scrollTop: 0
+    }, 400);
+});
+// $iFeedback.on('click', function () {
+// $(this).fadeOut(300).next().fadeIn(300);
+// });
+// $iCloFb.on("click", function () {
+//     $iFedCon.fadeOut(300).prev().fadeIn(300);
+// });
+
+// //反馈
+// $iPresent.click(function () {
+//     var fdmsg = $.trim($('#fed_msg').val()),
+//         fdemail = $.trim($('#fb-email').val());
+//     $.post('/user/feedback', {
+//             msg: fdmsg,
+//             email: fdemail
+//         },
+//         function (d) {
+//             layer.alert(d.msg,{icon:6});
+//             $iFedCon.fadeOut(300).prev().fadeIn(300);
+//         },
+//         'json'
+//     )
+// });
+
+// 同步登录其他产品
+function SSOLoginSync() {
+    $.post("/user/sso/login", {
+    }, function(data) {
+        if (data.code == 100) {
+            console.log(data.msg[0]);
+            for (var i = 0; i < data.msg.length; i++)
+                layer.open({
+                    type: 2,
+                    title: false,
+                    closeBtn: 0,
+                    content: data.msg[i],
+                    skin: "dn",
+                    time: 500,
+                    area: ["0px", "0px"],
+                    shade: 0,
+                    zIndex: -99
+                });
+        }
+    }, "json");
+}
+
+
+var deToken, deRes, deScore;
+$body
+    .on("click", ".resume_list", function() {
+        //选择简历
+        $(this).find(".de_ra").get(0).checked = true;
+        $("#group_uuid").val($(this).find(".de_ra").data("guid"));
+
+        $.get("/trainee/resume/deliverresume?" + Math.random(), {
+            guid: $("#group_uuid").val()
+        }, function(d) {
+            if (d.code == 100) {
+                var _months = d.msg.months;
+                if (_months) {
+                    $("#deliver-sy").val(_months.begin_year);
+                    $("#deliver-sm").val(_months.begin_month);
+                    $("#deliver-ey").val(_months.end_year);
+                    $("#deliver-em").val(_months.end_month);
+                }
+                if (d.msg.dayperweek) {
+                    $("#deliver-dpw").val(d.msg.dayperweek);
+                }
+
+                // $(".de_an_city").val(d.msg.born_city);
+                $(".de_an_time").val(d.msg.report_way);
+            }
+        }, "json");
+    })
+    //确认投递简历
+    .on("click", "#deli_pre", function() {
+        if ($(".de_ra:checked").length) {
+            if (!$("#deliver-dpw").val() || !$(".de_an_time").val() ||
+                !$("#deliver-sy").val() || !$("#deliver-sm").val() ||
+                !$("#deliver-ey").val() || !$("#deliver-em").val()) {
+                layer.msg("请先完善其他信息");
+                return false;
+            }
+            if (parseInt($("#deliver-sy").val()) <= parseInt($("#deliver-ey").val())) {
+                if (parseInt($("#deliver-sy").val()) === parseInt($("#deliver-ey").val()) &&
+                    parseInt($("#deliver-sm").val()) > parseInt($("#deliver-em").val())) {
+                    layer.msg("实习结束日期不能大于开始日期哦~");
+                    return false;
+                }
+            } else {
+                layer.msg("实习结束日期不能大于开始日期哦~");
+                return false;
+            }
+            //修改简历并确认
+            $.post("/trainee/resume/deliver", {
+                inuuid: $(".taruuid").val(),
+                guuid: $("#group_uuid").val(),
+                // city: $(".de_an_city").val(),
+                begin_year: $("#deliver-sy").val(),
+                begin_month: $("#deliver-sm").val(),
+                end_year: $("#deliver-ey").val(),
+                end_month: $("#deliver-em").val(),
+                dpw: $("#deliver-dpw").val(),
+                report_time: $(".de_an_time").val()
+            }, function(d) {
+                // 可以投递
+                if (d.code == 100) {
+                    deToken = d.msg.token;
+                    deRes = d.msg.res;
+                    deScore = d.msg.score;
+                    console.log(d.msg.cont);
+                    $(".sxs--modal #deli_prompt").text(d.msg.cont);
+                    $(".change_btn").attr("href", "/trainee/onresume/modify/" + deRes);
+                    // $("#deliver_resume")
+                    //     .find("#de_amend").hide().prev().show().end().end()
+                    //     .find(".de_h_p").text("投递简历确认")
+                    $(".load_res_de").creatBox("close", true);
+                    // $.sxs_modal("complete");
+                    //投递deToken 第二步
+                    $.get("/getsdtoken?" + Math.random(), function(sdt) {
+                        var source = getUrlParam("source");
+                        var activity = window.getUrlParam('act');
+                        $.post("/trainee/resume/deliver/confirm", {
+                            sdtoken: sdt,
+                            score: deScore,
+                            token: deToken,
+                            inuuid: $(".taruuid").val(),
+                            guuid: $("#group_uuid").val(),
+                            is_invite: $(".invite-special").val() ? 1 : "",
+                            source: source ? source : "",
+                            activity: activity
+                        }, function(d) {
+                            if (d.code == 100) {
+                                if (d.msg == 'no'){
+                                    window.location.href = "/deliver/success?uuid=" + $(".taruuid").val();
+                                } else{
+                                    var dataJson = [{
+                                        ad_position: "P_5_1",
+                                        max_num: 1
+                                    }];
+                                    getRecommend("全国", dataJson, function(data) {
+                                        var data1 = data.msg.P_5_1;
+                                        if (data1 && data1.length > 0) {
+                                            $.each(data1, function(i, val) {
+                                                if (data1.length > 0 && i == 0) {
+                                                    $(".layer-deliver-success").html('<a href="' + val.redirect + '" target="_blank"' +
+                                                        'data-sa="click" data-sevent="ad_click" data-starget="' + val.redirect + '" data-sinfo={"ad_uuid":"' + val.campaign_uuid + '"} ' +
+                                                        'data-sname="225" data-simg="' + val.hideimg + '">' + val.title + "</a>" +
+                                                        '<img src="' + val.hideimg + '" class="hideimg">');
+                                                }
+                                            });
+                                        }
+                                    });
+                                    $.sxs_modal("success");
+                                }
+                            } else if (d.code == 200) {
+                                location.href = d.msg;
+                            } else {
+                                layer.alert(d.msg);
+                                $.get("/getsdtoken?" + Math.random(), function(d) {
+                                    sdtoken_cf = d;
+                                });
+                            }
+                        }, "json");
+                    });
+                }
+                //不能投递提示
+                else if (d.code == 101) {
+                    // $("#deli_prompt").text(d.msg.cont);
+                    deRes = d.msg.res;
+                    $("#deli_faild").text(d.msg.cont);
+                    $(".change_btn").attr("href", "/trainee/onresume/modify/" + deRes);
+                    $(".load_res_de").creatBox("close", true);
+                    $.sxs_modal("not_complete");
+                }
+                //学生当天投递超过10次时提示
+                else if (d.code == 300) {
+                    $(".load_res_de").creatBox("close", true);
+                    $.sxs_modal("deliver_tip");
+                } else {
+                    layer.msg(d.msg);
+                }
+            }, "json");
+        } else {
+            layer.alert("请选择需要投递的简历");
+        }
+    })
+    .on("click", ".de_to2", function() {
+        //再次确认第二步
+        $(this).parents(".de_name_s1").hide().next().show();
+    })
+    .on("click", ".de_prev", function() {
+        $(this).parents("#de_amend").hide().prev().prev().show();
+    })
+    .on("click", ".de_next", function() {
+        if (!$(".de_name_text").val() || !$(".de_an_city").val() || !$(".de_an_time").val()) {
+            layer.msg("请完善简历信息后再提交");
+            return;
+        }
+        //修改简历
+        $.post("/trainee/resume/deliver", {
+            inuuid: $(".taruuid").val(),
+            guuid: $("#group_uuid").val(),
+            title: $(".de_name_text").val(),
+            city: $(".de_an_city").val(),
+            report_time: $(".de_an_time").val(),
+            act: "sept2"
+        }, function(d) {
+            if (d.code == 100) {
+                deToken = d.msg.token;
+                deRes = d.msg.res;
+                deScore = d.msg.score;
+                $("#deli_prompt").text(d.msg.cont);
+                $("#change_btn").attr("href", "/trainee/onresume/modify/" + deRes);
+                $("#deliver_resume")
+                    .find("#de_amend").hide().prev().show().end().end()
+                    .find(".de_h_p").text("投递简历确认");
+            } else {
+                layer.alert(d.msg);
+            }
+        }, "json");
+        //$(this).parents('#de_amend').hide().next().show();
+    })
+    //投递最后一步 取消该弹窗2018/9/27
+    .on("click", "#del_pre", function() {
+        //投递deToken
+        $.get("/getsdtoken?" + Math.random(), function(sdt) {
+            var source = getUrlParam("source");
+            var activity = window.getUrlParam('act');
+            $.post("/trainee/resume/deliver/confirm", {
+                sdtoken: sdt,
+                score: deScore,
+                token: deToken,
+                inuuid: $(".taruuid").val(),
+                guuid: $("#group_uuid").val(),
+                is_invite: $(".invite-special").val() ? 1 : "",
+                source: source ? source : "",
+                activity: activity
+            }, function(d) {
+                if (d.code == 100) {
+                    var dataJson = [{
+                        ad_position: "P_5_1",
+                        max_num: 1
+                    }];
+                    getRecommend("全国", dataJson, function(data) {
+                        var data1 = data.msg.P_5_1;
+                        if (data1 && data1.length > 0) {
+                            $.each(data1, function(i, val) {
+                                if (data1.length > 0 && i == 0) {
+                                    $(".layer-deliver-success").html('<a href="' + val.redirect + '" target="_blank"' +
+                                        'data-sa="click" data-sevent="ad_click" data-starget="' + val.redirect + '" data-sinfo={"ad_uuid":"' + val.campaign_uuid + '"} ' +
+                                        'data-sname="225" data-simg="' + val.hideimg + '">' + val.title + "</a>" +
+                                        '<img src="' + val.hideimg + '" class="hideimg">');
+                                }
+                            });
+                        }
+                    });
+                    $.sxs_modal("success");
+                } else if (d.code == 200) {
+                    location.href = d.msg;
+                } else {
+                    layer.alert(d.msg);
+                    $.get("/getsdtoken?" + Math.random(), function(d) {
+                        sdtoken_cf = d;
+                    });
+                }
+            }, "json");
+        });
+    })
+    .on("click", "#suc_close", function() {
+        location.reload();
+    })
+    .on("click", "#shade,#close_de", function() {
+        var $b = $("body");
+        if ($b.css("overflow") == "hidden") {
+            $b.css("overflow", "auto");
+        }
+        $("#hzw_city_picker").remove();
+    })
+    .on("click", "#close_de,.del_pre_btn,#shade", function() {
+        var $deliver = $("#deliver_resume");
+        if ($(this).is("#shade") && window.is_job_details) {
+            $deliver.creatBox("close", true, true);
+        } else {
+            $deliver.creatBox("close", true);
+        }
+        setTimeout(function() {
+            $("#del_pre").removeAttr("disabled").css("background", "#00a9e1");
+            $deliver.find("#de_center").show().next().hide().end().end()
+                .find(".de_h_p").text("投个简历").end();
+        }, 800);
+    });
