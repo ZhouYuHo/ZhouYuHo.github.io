@@ -1,0 +1,19 @@
+$(document).ready(function () {
+
+    $('.carousel').carousel({
+        interval: 4000
+    })
+
+    $(".pause_btn").on('click', function () {
+        if ($(this).find('.iconfont').is('.icon-zanting')) {
+            $('.carousel').carousel('pause')
+            $(this).find('.iconfont').removeClass('icon-zanting').addClass('icon-bofang')
+        } else {
+            $('.carousel').carousel({
+                interval: 4000
+            })
+            $(this).find('.iconfont').removeClass('icon-bofang').addClass('icon-zanting')
+        }
+
+    })
+});

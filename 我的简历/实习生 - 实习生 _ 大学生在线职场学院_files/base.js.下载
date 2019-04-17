@@ -1,0 +1,132 @@
+(function ($) {
+    $.fn.serializeJson = function () {
+        var serializeObj = {};
+        var array = this.serializeArray();
+        var str = this.serialize();
+        $(array).each(function () {
+            if (serializeObj[this.name]) {
+                if ($.isArray(serializeObj[this.name])) {
+                    serializeObj[this.name].push(this.value);
+                } else {
+                    serializeObj[this.name] = [serializeObj[this.name], this.value];
+                }
+            } else {
+                serializeObj[this.name] = this.value;
+            }
+        });
+        return serializeObj;
+    };
+})(jQuery);
+
+$(function () {
+    $('form').bootstrapValidator({
+        message: 'This value is not valid',
+        feedbackIcons: {
+            valid: 'glyphicon glyphicon-ok',
+            invalid: 'glyphicon glyphicon-remove',
+            validating: 'glyphicon glyphicon-refresh'
+        },
+        fields: {
+            user: {
+                message: '用户名验证失败',
+                validators: {
+                    notEmpty: {
+                        message: '用户名不能为空'
+                    },
+                    regexp: {
+                        regexp: /^[a-zA-Z0-9_@.-]+$/,
+                        message: '用户名仅能是邮箱或手机号'
+                    }
+                }
+            },
+            pwd: {
+                validators: {
+                    notEmpty: {
+                        message: '密码不能为空'
+                    }
+                }
+            }
+        }
+    });
+});
+
+$(document).ready(function () {
+
+    $(".nav-item").hover(function () {//鼠标悬停触发事件
+        $(this).find('.dropdown-toggle').dropdown('toggle');
+    });
+
+    // 右边栏显示隐藏判断
+    window.onscroll = function () {
+        //变量t是滚动条滚动时，距离顶部的距离
+        var t = document.documentElement.scrollTop || document.body.scrollTop;
+        //当滚动到大于一个页面时显示边栏
+        if (t >= $(window).height()) {
+            $(".to_top").show()
+        } else {          //恢复正常
+            $(".to_top").hide();
+        }
+        // 导航栏固定顶部
+        // if (t >= 65) {
+        //     $("header").addClass('fix-top');
+        // } else {
+        //     //恢复正常
+        //     $("header").removeClass('fix-top');
+        // }
+
+        // // 导航栏固定顶部
+        // if (t >= 505) {
+        //     $(".menu-list-box.index-page").addClass('fix-top');
+        // } else {
+        //     //恢复正常
+        //     $(".menu-list-box.index-page").removeClass('fix-top');
+        // }
+    }
+    // 返回顶部
+    $(".to_top").on("click", function () {
+        var speed = 200;//滑动的速度
+        $("html").animate({scrollTop: 0}, speed);
+        return false;
+    })
+    // 二维码
+    $(".side-qr").on("click", function () {
+        $(this).find('img').toggle()
+    })
+
+    // 登录提交
+    $(".login_submit").on("click", function () {
+        var bootstrapValidator = $("form").data('bootstrapValidator');
+        bootstrapValidator.validate();
+        if (bootstrapValidator.isValid()) {
+            var postData = $('form').serializeJson();
+            postData.pwd = myEncode(postData.pwd);
+            $(".login_submit").text('登录中...');
+            $.ajax({
+                url: '/user/login',
+                type: 'post',
+                dataType: 'json',
+                data: postData,
+                success: function (res) {
+                    if (res.code === 100) {
+                        window.location.reload();
+                    } else {
+                        $(".login_submit").text('登录');
+                        $('.error-msg').show().text(res.msg);
+                    }
+                }
+            })
+        }
+    })
+})
+
+function myEncode (source) {
+    var nstr = [];
+    var s;
+    var str = source.slice(0).split('');
+    while (str.length) {
+        s = str.shift();
+        nstr.push(String(s.charCodeAt()).split('').reverse().join(''));
+    }
+    nstr = nstr.reverse().join('X');
+    return nstr;
+}
