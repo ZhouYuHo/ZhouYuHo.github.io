@@ -1,0 +1,31 @@
+window.onload = function () {
+
+    setTimeout(function () {
+        var isMobile = ((navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i)));
+
+        if (isMobile) {
+            return;
+        }
+
+        var a = document.createElement('a');
+        a.className = 'tecmz-service-box';
+        a.innerHTML = '对此系统感兴趣？联系购买';
+        a.target = '_blank';
+        a.href = 'http://www.tecmz.com/#contact-block';
+        a.style.display = 'block';
+        a.style.position = 'fixed';
+        a.style.bottom = '50px';
+        a.style.right = '-10px';
+        a.style.zIndex = 9999;
+        a.style.background = 'red';
+        a.style.color = '#FFF';
+        a.style.padding = '10px 20px 10px 10px';
+        a.style.borderRadius = '5px';
+        a.style.boxShadow = '0 0 5px #000';
+        a.style.fontSize = '12px';
+        a.style.lineHeight = '12px';
+        document.body.appendChild(a);
+
+    }, 1000);
+
+};
